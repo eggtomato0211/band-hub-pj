@@ -1,0 +1,80 @@
+# BandHub ローカル開発用 Docker Compose
+# 使い方: docker compose up で3つのコンテナが起動する
+#   - db:       PostgreSQL（ポート 5432）
+#   - backend:  Go API サーバー（ポート 8080）
+#   - frontend: Next.js 開発サーバー（ポート 3000）
+
+services:
+  # --- PostgreSQL ---
+  # データは db-data ボリュームに永続化される
+  # コンテナを削除してもデータは残る（docker compose down -v で削除可能）
+  db:
+    image: postgres:16-alpine
+    container_name: bandhub-db
+    environment:
+      POSTGRES_USER: bandhub
+      POSTGRES_PASSWORD: bandhub
+      POSTGRES_DB: bandhub_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # PostgreSQL が接続を受け付け可能か確認する
+      test: ["CMD-SHELL", "pg_isready -U bandhub -d bandhub_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Go API サーバー ---
+  # Air によるホットリロード付き
+  # depends_on で db の起動完了を待ってから起動する
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bandhub-backend
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: bandhub
+      DB_PASSWORD: bandhub
+      DB_NAME: bandhub_dev
+    volumes:
+      # ローカルのソースコードをコンテナにマウント
+      # これにより、ホスト側でコードを編集すると Air が検知して再ビルドする
+      - ./backend:/app
+      # Go のモジュールキャッシュを永続化（毎回ダウンロードしないように）
+      - go-mod-cache:/go/pkg/mod
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- Next.js 開発サーバー ---
+  # ホットリロード（Fast Refresh）付き
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bandhub-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # バックエンド API の接続先
+      # コンテナ間通信では Docker のサービス名で名前解決できる
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    volumes:
+      # ローカルのソースコードをマウント（Fast Refresh 用）
+      - ./frontend:/app
+      # node_modules はコンテナ内のものを使う（ホスト側と混ざらないように）
+      # 匿名ボリュームでマウントすることで、ホスト側の node_modules を上書きしない
+      - /app/node_modules
+      # Next.js のビルドキャッシュもコンテナ内で管理
+      - /app/.next
+
+volumes:
+  db-data:
+  go-mod-cache:

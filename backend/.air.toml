@@ -1,0 +1,24 @@
+# Air 設定ファイル
+# .go ファイルの変更を検知して自動でビルド＆再起動する
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # ビルドコマンド: cmd/server/main.go をエントリーポイントとしてビルド
+  cmd = "go build -o ./tmp/main ./cmd/server"
+  # ビルド成果物のパス
+  bin = "tmp/main"
+  # 監視対象の拡張子
+  include_ext = ["go"]
+  # 監視対象外のディレクトリ
+  exclude_dir = ["tmp", "vendor"]
+  # ファイル変更後、ビルド開始までの待機時間（ミリ秒）
+  delay = 1000
+
+[log]
+  time = false
+
+[misc]
+  # Air 終了時にビルド成果物を削除する
+  clean_on_exit = true

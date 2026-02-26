@@ -1,0 +1,6 @@
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
