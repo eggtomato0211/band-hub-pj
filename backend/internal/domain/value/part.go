@@ -13,7 +13,6 @@ const (
 	PartKey Part = "Key"
 )
 
-// validateParts はバリデーション用のmap
 var validateParts = map[Part]bool{
 	PartVo:  true,
 	PartGt:  true,
@@ -22,8 +21,6 @@ var validateParts = map[Part]bool{
 	PartKey: true,
 }
 
-// バリデーション付きのコンストラクタ関数
-// mapを使って有効なパートかどうかを判定する
 func NewPart(s string) (Part, error) {
 	p := Part(s)
 	if validateParts[p] {
