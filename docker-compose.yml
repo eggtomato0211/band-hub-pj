@@ -74,6 +74,24 @@ services:
       - /app/node_modules
       # Next.js のビルドキャッシュもコンテナ内で管理
       - /app/.next
+  
+  migrate:
+    image: postgres:16-alpine
+    container_name: bandhub-migrate
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: bandhub
+      DB_NAME: bandhub_dev
+      PGPASSWORD: bandhub
+    volumes:
+      - ./backend/migrations:/migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "/migrations/run.sh"]
+    profiles:
+      - tools
 
 volumes:
   db-data:
